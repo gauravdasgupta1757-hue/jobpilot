@@ -1,8 +1,11 @@
 # One person's JobPilot on Render: the app and its database, in Singapore
 # (closest to India). New → Blueprint → this repository. Render asks for
 # DOSSIER_PASSWORD (the argon2id hash, see RENDER.md); the rest fills itself.
-# Paid plans on purpose: a free service sleeps after 15 minutes, which stops
-# the inbox check and the job agent, and a free database is deleted after 30 days.
+# Free plans, for trying it out. A free service sleeps after 15 minutes
+# without visits (the inbox check and the job agent pause until the next
+# visit wakes it, about a minute), and a free database is deleted after 30
+# days. To keep it: in the dashboard, move the service to Starter and the
+# database to Basic-256mb; nothing else changes.
 
 services:
   - type: web
@@ -10,7 +13,7 @@ services:
     runtime: docker
     dockerfilePath: ./Dockerfile
     region: singapore
-    plan: starter
+    plan: free
     # One copy only: the inbox check, the agent and the backups run inside the app.
     numInstances: 1
     healthCheckPath: /api/health
@@ -30,7 +33,7 @@ services:
 databases:
   - name: jobpilot-db
     region: singapore
-    plan: basic-256mb
+    plan: free
     databaseName: jobpilot
     user: jobpilot
     ipAllowList: []

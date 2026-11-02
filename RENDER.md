@@ -9,6 +9,6 @@ Each person gets their own copy: their own app, database, password and link.
 
 For a second person, repeat with another Blueprint name and their own password hash.
 
-Cost per copy, at Render's prices in late 2026: Starter web service ($7/month) plus Basic-256mb Postgres ($6/month plus storage). If downloading resume PDFs fails for lack of memory, move the service to Standard.
+`render.yaml` starts on Render's free plans, to try it out: the app sleeps after 15 minutes without visits (the inbox check pauses until someone opens it), and the free database is deleted after 30 days. To keep it, move the service to **Starter** ($7/month) and the database to **Basic-256mb** ($6/month plus storage) in the dashboard; the data stays. If downloading resume PDFs fails for lack of memory, move the service up a size.
 
 After signing in, the person sets up **Settings → AI provider**, **Job search** and **Google** as in RAILWAY.md.
