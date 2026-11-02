@@ -18,7 +18,7 @@ import { cn } from "@/lib/cn";
 import { saveJobSearchDetails, saveJobSource, saveJobSourceKey, testJobSource } from "./actions";
 import { SettingsSectionIntro } from "./settings-screen";
 
-type Choice = JobSource | "OFF";
+type Choice = (typeof JOB_SOURCES)[number] | "OFF";
 
 const CHOICES: readonly { value: Choice; name: string; description: string; tag: string }[] = [
   ...JOB_SOURCES.map((source) => ({ value: source, ...SOURCE_INFO[source] })),

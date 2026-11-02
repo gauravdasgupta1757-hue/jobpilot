@@ -60,6 +60,8 @@ export type ReadMail = {
   date: Date;
   /** The text body; from HTML when there's no text part. */
   text: string;
+  /** The HTML body, when there is one: job-alert emails keep their links there. */
+  html?: string;
 };
 
 const header = (part: GmailPart, name: string) =>
@@ -82,8 +84,9 @@ export function readMessage(json: unknown): ReadMail {
   const message = messageSchema.parse(json);
   const { payload } = message;
   const plain = findPart(payload, "text/plain");
-  const html = plain ? null : findPart(payload, "text/html");
-  const text = plain ? decodeBody(plain.body!.data!) : html ? htmlToText(decodeBody(html.body!.data!)) : message.snippet;
+  const htmlPart = findPart(payload, "text/html");
+  const html = htmlPart ? decodeBody(htmlPart.body!.data!) : "";
+  const text = plain ? decodeBody(plain.body!.data!) : html ? htmlToText(html) : message.snippet;
   const dateHeader = header(payload, "Date");
   const date = message.internalDate ? new Date(Number(message.internalDate)) : new Date(dateHeader);
   return {
@@ -97,6 +100,7 @@ export function readMessage(json: unknown): ReadMail {
     references: header(payload, "References"),
     date: Number.isNaN(date.getTime()) ? new Date() : date,
     text,
+    html,
   };
 }
 

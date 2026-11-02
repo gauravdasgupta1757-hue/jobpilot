@@ -15,6 +15,8 @@ import { SOURCE_INFO } from "./sources";
 /** The job sources Dossier can search (E14-1 to E14-3, FreeHire), in the order Settings lists them; one is chosen there. */
 export const JOB_SOURCES = [PostingSource.JSEARCH, PostingSource.ADZUNA, PostingSource.FREEHIRE, PostingSource.ARBEITSAGENTUR] as const;
 export type JobSource = PostingSource;
+/** Every source a posting can come from: the searchable ones and, in JobPilot, job-alert emails. */
+export const POSTING_SOURCES = [...JOB_SOURCES, PostingSource.EMAIL_ALERT] as const;
 
 /** Where a JSearch key comes from: OpenWeb Ninja directly, or the RapidAPI marketplace. */
 export const JSEARCH_HOSTS = ["openwebninja", "rapidapi"] as const;
@@ -64,7 +66,7 @@ export const EMPTY_QUERY: SearchQuery = {
 
 /** A posting as a source found it, in one shape for every source. */
 export const foundPostingSchema = z.object({
-  source: z.enum(JOB_SOURCES),
+  source: z.enum(POSTING_SOURCES),
   /** The source's own id for it. */
   externalId: z.string().min(1).max(500),
   title: z.string().max(500),

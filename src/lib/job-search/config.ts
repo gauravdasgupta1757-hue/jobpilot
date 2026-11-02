@@ -153,6 +153,7 @@ export function credentialsFor<S extends JobSource>(config: JobSearchConfig, sou
       return {} as SourceCredentials[S];
     }
     case "FREEHIRE":
+    case "EMAIL_ALERT":
       return {} as SourceCredentials[S];
   }
 }

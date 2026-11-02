@@ -164,7 +164,7 @@ export function AgentScreen({ view }: { view: AgentView }) {
 
         <Section title="Scored postings" count={scored.length}>
           {scored.length === 0 ? (
-            <Empty>{empty ? "Nothing waiting yet. A run puts the postings that fit you best here." : "No postings waiting for a draft."}</Empty>
+            <Empty>{empty ? "Nothing waiting yet. A run, or a LinkedIn or Naukri job alert in your Gmail, puts the postings that fit you best here." : "No postings waiting for a draft."}</Empty>
           ) : (
             <ul className="flex flex-col gap-3">
               {scored.map((candidate) => (

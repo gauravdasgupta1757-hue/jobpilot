@@ -92,6 +92,18 @@ export const SOURCE_INFO: Record<JobSource, SourceInfo> = {
     // It has a city filter, but only for the names it knows, and a country with it widens rather than narrows.
     radius: false,
   },
+  // JobPilot: not searched; the inbox check reads these from LinkedIn, Naukri and other alert emails.
+  EMAIL_ALERT: {
+    name: "your job alerts",
+    description: "Jobs from the LinkedIn, Naukri, Indeed and other job-alert emails in your Gmail.",
+    tag: "Free · arrives with the inbox check",
+    keyUrl: null,
+    quotaPeriod: null,
+    attribution: null,
+    attributionLink: null,
+    countries: null,
+    radius: false,
+  },
 };
 
 /** FreeHire's public catalogue; DOSSIER_FREEHIRE_URL can name a self-hosted one instead. */

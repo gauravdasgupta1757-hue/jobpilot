@@ -18,7 +18,11 @@ import { applyStatusChange } from "@/lib/status-changes";
 
 import { googleConnection, loadGoogleAccount } from "./account";
 import { pullInterviewEvents } from "./availability";
+import { alertPosting, importAlertPostings } from "@/lib/agent/alerts";
+import type { FoundPosting } from "@/lib/job-search/search";
+
 import { CONFIRMATION_SEARCH, detectConfirmation, type Confirmation } from "./confirmations";
+import { ALERT_SEARCH, readJobAlert } from "./job-alerts";
 import { GoogleError } from "./errors";
 import { currentHistoryId, getMessage, messagesSince, searchMessages, type ReadMail } from "./gmail";
 import { companyKey, matchMail, worthSuggesting, type MailMatch, type MatchableApplication } from "./matching";
@@ -108,7 +112,8 @@ async function knownThreads(): Promise<Map<string, string>> {
   ]);
 }
 
-export type SyncResult = { fetched: number; kept: number; read: number; logged?: number };
+/** `logged`: applications logged from confirmation emails; `jobs`: new jobs from job-alert emails (JobPilot). */
+export type SyncResult = { fetched: number; kept: number; read: number; logged?: number; jobs?: number };
 
 /**
  * One check. Returns what it did; a failure is kept on the account, so
@@ -139,21 +144,24 @@ async function runSync(historyId: string | null, ownAddress: string, scope: "kno
   } else {
     // First check, or Gmail forgot where the last one was: look back a few weeks.
     next = await currentHistoryId(signal);
-    const [primary, confirmations] = await Promise.all([
+    const [primary, confirmations, alerts] = await Promise.all([
       searchMessages(`${FIRST_LOOK} -in:chats -category:promotions -category:social`, { max: 200, signal }),
       // Applications made elsewhere, whatever tab their confirmation landed in.
       searchMessages(`${FIRST_LOOK} -in:chats ${CONFIRMATION_SEARCH}`, { max: 100, signal }),
+      // The last week's job alerts, wherever they landed.
+      searchMessages(`-in:chats ${ALERT_SEARCH}`, { max: 50, signal }),
     ]);
-    ids = [...new Set([...primary, ...confirmations])];
+    ids = [...new Set([...primary, ...confirmations, ...alerts])];
   }
 
   const seen = new Set((await prisma.emailMessage.findMany({ where: { gmailId: { in: ids } }, select: { gmailId: true } })).map((entry) => entry.gmailId));
   const fresh = ids.filter((id) => !seen.has(id));
-  const counts = { fetched: fresh.length, kept: 0, read: 0, logged: 0 };
+  const counts: SyncResult & { logged: number } = { fetched: fresh.length, kept: 0, read: 0, logged: 0 };
   if (fresh.length === 0) return { historyId: next, counts };
 
   const [applications, threads, aiReady] = await Promise.all([matchables(), knownThreads(), isAiConfigured()]);
   const kept: string[] = [];
+  const alertPostings: FoundPosting[] = [];
   // Oldest first, so a thread's first mail links it for the ones after.
   const mails: ReadMail[] = [];
   for (const id of fresh) {
@@ -167,6 +175,9 @@ async function runSync(historyId: string | null, ownAddress: string, scope: "kno
     const outgoing = mail.labels.includes("SENT") || from.address === ownAddress.toLowerCase();
     if (mail.labels.some((label) => NEVER_LABELS.includes(label))) continue;
     const confirmation = outgoing ? null : detectConfirmation({ fromName: from.name, fromAddress: from.address, subject: mail.subject, text: mail.text });
+    // Jobs from an alert go to the job agent's list; the mail itself carries on as any other.
+    const alert = outgoing || confirmation ? null : readJobAlert({ fromAddress: from.address, subject: mail.subject, text: mail.text, html: mail.html });
+    if (alert) alertPostings.push(...alert.jobs.map((job) => alertPosting(job, mail.date)));
     if (!confirmation && mail.labels.some((label) => NOISE_LABELS.includes(label))) continue;
     let match: MailMatch = matchMail({ threadId: mail.threadId, fromName: from.name, fromAddress: from.address, subject: mail.subject }, applications, threads);
     if (confirmation) {
@@ -199,6 +210,16 @@ async function runSync(historyId: string | null, ownAddress: string, scope: "kno
     if (match) threads.set(mail.threadId, match.applicationId);
     counts.kept++;
     if (!outgoing) kept.push(created.id);
+  }
+
+  if (alertPostings.length > 0) {
+    try {
+      // Newest first, so the latest alert's copy of a job is the one kept.
+      counts.jobs = await importAlertPostings(alertPostings.reverse(), signal);
+    } catch (error) {
+      // The rest of the check stands; the next alert brings them again.
+      logServerError("importing job alerts", error);
+    }
   }
 
   if (aiReady) {

@@ -6,6 +6,7 @@ import type { JobSourceAdapter, RequestContext, SourceCredentials } from "./adap
 import { cached, remember } from "./cache";
 import { JobSearchError, jobSearchError } from "./errors";
 import { adzuna } from "./adzuna";
+import { emailAlert } from "./email-alert";
 import { arbeitsagentur } from "./arbeitsagentur";
 import { freehire } from "./freehire";
 import { jsearch } from "./jsearch";
@@ -25,6 +26,7 @@ const ADAPTERS: { [S in JobSource]: JobSourceAdapter<S> } = {
   ADZUNA: adzuna,
   ARBEITSAGENTUR: arbeitsagentur,
   FREEHIRE: freehire,
+  EMAIL_ALERT: emailAlert,
 };
 
 const adapterFor = <S extends JobSource>(source: S) => ADAPTERS[source] as JobSourceAdapter<S>;

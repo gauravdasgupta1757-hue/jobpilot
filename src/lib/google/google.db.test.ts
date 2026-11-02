@@ -160,6 +160,28 @@ describe("the inbox check (E15-3)", () => {
     expect(await prisma().googleAccount.findUniqueOrThrow({ where: { id: "google" } })).toMatchObject({ historyId: "300", syncProblem: null });
   });
 
+  it("turns a job alert into the job agent's candidates, whatever tab it landed in (JobPilot)", async () => {
+    const alert = [
+      "Your job alert for chief of staff",
+      "Chief of Staff to the CEO",
+      "Zenvo Health",
+      "Bengaluru, Karnataka, India",
+      "View job: https://www.linkedin.com/comm/jobs/view/4012345678/?trackingId=abc",
+      "",
+      "Founder's Office Associate",
+      "Kite Labs",
+      "Mumbai",
+      "View job: https://www.linkedin.com/comm/jobs/view/4012345999/?trackingId=def",
+    ].join("\n");
+    mailbox = [{ id: "a1", threadId: "ta", from: "LinkedIn Job Alerts <jobalerts-noreply@linkedin.com>", subject: "“chief of staff”: 2 new jobs", text: alert, labels: ["INBOX", "CATEGORY_PROMOTIONS"] }];
+    expect(await syncInbox()).toEqual({ fetched: 1, kept: 0, read: 0, logged: 0, jobs: 2 });
+    const candidates = await prisma().agentCandidate.findMany({ orderBy: { externalId: "asc" } });
+    expect(candidates.map((candidate) => [candidate.source, candidate.title, candidate.company, candidate.url])).toEqual([
+      ["EMAIL_ALERT", "Chief of Staff to the CEO", "Zenvo Health", "https://www.linkedin.com/jobs/view/4012345678/"],
+      ["EMAIL_ALERT", "Founder's Office Associate", "Kite Labs", "https://www.linkedin.com/jobs/view/4012345999/"],
+    ]);
+  });
+
   it("keeps unmatched inbox mail for a look when set to read everything", async () => {
     await prisma().setting.create({ data: { key: "gmailScope", value: "all" } });
     mailbox = [{ id: "m5", threadId: "t5", from: "Recruiter <talent@acme-hr.example>", subject: "Senior Designer role", text: "Interested?" }];

@@ -172,7 +172,7 @@ describe("AgentScreen (E16-6)", () => {
   it("says when there's nothing yet", () => {
     open({ drafts: [], scored: [], belowMinimum: [], lastRun: null, autoDraft: true });
     expect(screen.getByText("No drafts yet. After a run, the best new postings get a draft here.")).toBeInTheDocument();
-    expect(screen.getByText("Nothing waiting yet. A run puts the postings that fit you best here.")).toBeInTheDocument();
+    expect(screen.getByText("Nothing waiting yet. A run, or a LinkedIn or Naukri job alert in your Gmail, puts the postings that fit you best here.")).toBeInTheDocument();
     expect(screen.getByText("Last run").nextElementSibling).toHaveTextContent("Not yet");
   });
 });
