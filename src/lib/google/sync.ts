@@ -14,11 +14,14 @@ import { prisma } from "@/lib/prisma";
 import { loadSettings } from "@/lib/settings-data";
 import { lastKnownTimeZone } from "@/lib/time-zone";
 
+import { applyStatusChange } from "@/lib/status-changes";
+
 import { googleConnection, loadGoogleAccount } from "./account";
 import { pullInterviewEvents } from "./availability";
+import { CONFIRMATION_SEARCH, detectConfirmation, type Confirmation } from "./confirmations";
 import { GoogleError } from "./errors";
 import { currentHistoryId, getMessage, messagesSince, searchMessages, type ReadMail } from "./gmail";
-import { matchMail, worthSuggesting, type MatchableApplication } from "./matching";
+import { companyKey, matchMail, worthSuggesting, type MailMatch, type MatchableApplication } from "./matching";
 import { parseAddress, stripQuoted } from "./mime";
 
 // The inbox check (E15-3): new mail since the last check, matched to
@@ -31,6 +34,47 @@ const MAX_BODY = 20_000;
 const FIRST_LOOK = "newer_than:21d";
 /** Gmail's tabs for mail that's never about an application. */
 const NOISE_LABELS = ["CATEGORY_PROMOTIONS", "CATEGORY_SOCIAL", "CATEGORY_FORUMS", "SPAM", "TRASH", "CHAT"];
+/** Never read, even for an application confirmation (job boards often land theirs in Promotions or Social). */
+const NEVER_LABELS = ["SPAM", "TRASH", "CHAT"];
+
+const normalRole = (role: string) => role.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+
+/**
+ * JobPilot: an application made outside JobPilot (LinkedIn Easy Apply,
+ * Naukri, an employer's own form), logged from its confirmation mail. The
+ * same company and role already on the board is marked sent; otherwise a
+ * new application is added as sent, with a note saying where it came from.
+ */
+export async function logConfirmedApplication(confirmation: Confirmation, sentAt: Date, applications: MatchableApplication[]): Promise<string> {
+  const key = companyKey(confirmation.company);
+  const role = normalRole(confirmation.role);
+  const candidates = await prisma.application.findMany({
+    where: { archivedAt: null, awaitingReview: false },
+    select: { id: true, company: true, role: true, status: true },
+    orderBy: { updatedAt: "desc" },
+  });
+  const same = candidates.find((application) => {
+    if (!key || companyKey(application.company) !== key) return false;
+    const theirs = normalRole(application.role);
+    return !role || !theirs || theirs === role || theirs.includes(role) || role.includes(theirs);
+  });
+  if (same) {
+    if (same.status === ApplicationStatus.DRAFT) await applyStatusChange(prisma, same.id, ApplicationStatus.SENT, sentAt);
+    return same.id;
+  }
+  const created = await prisma.application.create({
+    data: {
+      company: confirmation.company,
+      role: confirmation.role,
+      title: [confirmation.role, confirmation.company].filter(Boolean).join(" · "),
+      notes: { create: { body: `Logged from your ${confirmation.portal} confirmation email. Add the posting to tailor documents or track replies.` } },
+    },
+    select: { id: true, updatedAt: true },
+  });
+  await applyStatusChange(prisma, created.id, ApplicationStatus.SENT, sentAt);
+  applications.push({ id: created.id, company: confirmation.company, status: ApplicationStatus.SENT, postingText: "", emailTo: "", updatedAt: created.updatedAt });
+  return created.id;
+}
 
 export const questionsSchema = z.array(z.string());
 
@@ -64,7 +108,7 @@ async function knownThreads(): Promise<Map<string, string>> {
   ]);
 }
 
-export type SyncResult = { fetched: number; kept: number; read: number };
+export type SyncResult = { fetched: number; kept: number; read: number; logged?: number };
 
 /**
  * One check. Returns what it did; a failure is kept on the account, so
@@ -95,12 +139,17 @@ async function runSync(historyId: string | null, ownAddress: string, scope: "kno
   } else {
     // First check, or Gmail forgot where the last one was: look back a few weeks.
     next = await currentHistoryId(signal);
-    ids = await searchMessages(`${FIRST_LOOK} -in:chats -category:promotions -category:social`, { max: 200, signal });
+    const [primary, confirmations] = await Promise.all([
+      searchMessages(`${FIRST_LOOK} -in:chats -category:promotions -category:social`, { max: 200, signal }),
+      // Applications made elsewhere, whatever tab their confirmation landed in.
+      searchMessages(`${FIRST_LOOK} -in:chats ${CONFIRMATION_SEARCH}`, { max: 100, signal }),
+    ]);
+    ids = [...new Set([...primary, ...confirmations])];
   }
 
   const seen = new Set((await prisma.emailMessage.findMany({ where: { gmailId: { in: ids } }, select: { gmailId: true } })).map((entry) => entry.gmailId));
   const fresh = ids.filter((id) => !seen.has(id));
-  const counts = { fetched: fresh.length, kept: 0, read: 0 };
+  const counts = { fetched: fresh.length, kept: 0, read: 0, logged: 0 };
   if (fresh.length === 0) return { historyId: next, counts };
 
   const [applications, threads, aiReady] = await Promise.all([matchables(), knownThreads(), isAiConfigured()]);
@@ -116,8 +165,14 @@ async function runSync(historyId: string | null, ownAddress: string, scope: "kno
   for (const mail of mails) {
     const from = parseAddress(mail.from);
     const outgoing = mail.labels.includes("SENT") || from.address === ownAddress.toLowerCase();
-    if (mail.labels.some((label) => NOISE_LABELS.includes(label))) continue;
-    const match = matchMail({ threadId: mail.threadId, fromName: from.name, fromAddress: from.address, subject: mail.subject }, applications, threads);
+    if (mail.labels.some((label) => NEVER_LABELS.includes(label))) continue;
+    const confirmation = outgoing ? null : detectConfirmation({ fromName: from.name, fromAddress: from.address, subject: mail.subject, text: mail.text });
+    if (!confirmation && mail.labels.some((label) => NOISE_LABELS.includes(label))) continue;
+    let match: MailMatch = matchMail({ threadId: mail.threadId, fromName: from.name, fromAddress: from.address, subject: mail.subject }, applications, threads);
+    if (confirmation) {
+      match = { applicationId: await logConfirmedApplication(confirmation, mail.date, applications), by: "company" };
+      counts.logged++;
+    }
     // Your own mail only counts in a thread Dossier knows; other mail by the setting.
     if (!match && (outgoing || scope === "known" || !mail.labels.includes("INBOX"))) continue;
     if (outgoing && match?.by !== "thread") continue;

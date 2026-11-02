@@ -27,6 +27,7 @@ export function SearchFields({
   countries,
   errors = {},
   onBlur,
+  keywordHint = false,
 }: {
   value: SearchQuery;
   onChange: (patch: Partial<SearchQuery>) => void;
@@ -35,6 +36,8 @@ export function SearchFields({
   errors?: SearchFieldErrors;
   /** For text fields that save once typing is done. */
   onBlur?: () => void;
+  /** Explains the keyword syntax under What (Find jobs; the job agent keeps its own wording). */
+  keywordHint?: boolean;
 }) {
   const uncovered = uncoveredCountry(source, value, countries);
   const noRadius = source !== null && !SOURCE_INFO[source].radius;
@@ -44,7 +47,8 @@ export function SearchFields({
         label="What"
         className="sm:col-span-2 lg:col-span-1"
         value={value.keywords}
-        placeholder="Job title, skill or company"
+        placeholder="e.g. chief of staff, partnerships, +healthcare, -sales"
+        hint={keywordHint ? "Commas mean any of these. + must appear, - leave out. Related titles are searched too." : undefined}
         error={errors.keywords}
         onChange={(event) => onChange({ keywords: event.target.value })}
         onBlur={onBlur}
