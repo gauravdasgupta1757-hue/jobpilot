@@ -1,0 +1,46 @@
+# One person's JobPilot on DigitalOcean App Platform, in Bangalore.
+# Create App → GitHub → jobpilot, or `doctl apps create --spec .do/app.yaml`.
+# Fill in DOSSIER_PASSWORD (the argon2id hash) and DOSSIER_SECRET first.
+name: jobpilot
+region: blr
+services:
+  - name: web
+    github:
+      repo: gauravdasgupta1757-hue/jobpilot
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    http_port: 3000
+    # One copy only: the inbox check, the job agent and the backups run inside the app.
+    instance_count: 1
+    # 1 GB: making resume PDFs runs a browser.
+    instance_size_slug: apps-s-1vcpu-1gb-fixed
+    health_check:
+      http_path: /api/health
+      initial_delay_seconds: 60
+      period_seconds: 30
+      timeout_seconds: 10
+      failure_threshold: 6
+    envs:
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        value: ${db.DATABASE_URL}
+      - key: DATABASE_CA_CERT
+        scope: RUN_TIME
+        value: ${db.CA_CERT}
+      - key: DOSSIER_PASSWORD
+        scope: RUN_TIME
+        type: SECRET
+        value: "argon2id:REPLACE_ME"
+      - key: DOSSIER_SECRET
+        scope: RUN_TIME
+        type: SECRET
+        value: "REPLACE_WITH_32_RANDOM_CHARACTERS"
+      - key: TZ
+        scope: RUN_AND_BUILD_TIME
+        value: Asia/Kolkata
+databases:
+  - name: db
+    engine: PG
+    version: "16"
+    production: false
