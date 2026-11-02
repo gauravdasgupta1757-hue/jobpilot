@@ -85,6 +85,12 @@ describe("matchPosting", () => {
     expect(inTitle.viaRelated).toBe(false);
   });
 
+  it("keeps a posting without any typed word when any-words only rank", () => {
+    const match = matchPosting(parseKeywords("product designer, -sales"), { title: "UX Researcher" }, { requireAny: false });
+    expect(match).toEqual({ matched: true, hits: [], viaRelated: false, relevance: 0 });
+    expect(matchPosting(parseKeywords("product designer, +figma"), { title: "UX Researcher" }, { requireAny: false }).matched).toBe(false);
+  });
+
   it("matches everything for an empty query, except excluded words", () => {
     expect(matchPosting(parseKeywords(""), cos).matched).toBe(true);
     expect(matchPosting(parseKeywords("-zenvo"), cos).matched).toBe(false);

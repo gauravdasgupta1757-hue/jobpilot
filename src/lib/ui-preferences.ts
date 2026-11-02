@@ -15,7 +15,8 @@ export function parseColorScheme(value: string | undefined): ColorScheme | undef
 
 /** Whether the sidebar was left collapsed. */
 export function parseSidebarCollapsed(value: string | undefined): boolean {
-  return value === "collapsed";
+  // JobPilot: the icon rail is the default; the expanded sidebar is kept once chosen.
+  return value !== "expanded";
 }
 
 const YEAR_SECONDS = 365 * 24 * 60 * 60;

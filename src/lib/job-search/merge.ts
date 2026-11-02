@@ -64,9 +64,11 @@ export function mergePostings(lists: FoundPosting[][]): { posting: FoundPosting;
 export type RankOrder = "best" | "newest";
 
 /**
- * Merges, keeps only postings that match the keywords, and orders them: by
- * how well the keywords match (title hits first, then postings more sources
- * agree on, then the newest), or newest first.
+ * Merges, drops postings with a - word or without a + word, and orders the
+ * rest: by how well the keywords match (title hits first, typed words before
+ * related titles, then postings more sources agree on, then the newest), or
+ * newest first. The sources already chose these postings for the keywords,
+ * so a posting that shows none of them is kept, last.
  */
 export function mergeAndRank(
   lists: FoundPosting[][],
@@ -75,7 +77,7 @@ export function mergeAndRank(
 ): MergedPosting[] {
   const merged: MergedPosting[] = [];
   for (const { posting, foundIn } of mergePostings(lists)) {
-    const match = matchPosting(query, posting, { related });
+    const match = matchPosting(query, posting, { related, requireAny: false });
     if (match.matched) merged.push({ ...posting, foundIn, match });
   }
   const newest = (a: MergedPosting, b: MergedPosting) => (b.postedAt ?? "").localeCompare(a.postedAt ?? "");

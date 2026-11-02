@@ -54,7 +54,7 @@ export default async function AppLayout({ children }: LayoutProps<"/">) {
       {/* The screen sits in a white panel inset from the shell. Each screen
           starts with its page bar (PageHeader or PageBar), which draws the
           panel's top edge and stays in view. */}
-      <div className="flex min-w-0 flex-1 flex-col bg-paper px-2 pb-2">
+      <div className="flex min-w-0 flex-1 flex-col bg-shell pr-3 pb-3">
         <main
           id="main"
           tabIndex={-1}

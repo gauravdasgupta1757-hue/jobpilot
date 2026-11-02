@@ -48,18 +48,18 @@ export function Sidebar({
         <>
           <BrandMark />
           <div className="flex min-w-0 flex-col group-data-collapsed/sidebar:hidden">
-            <span className="font-serif text-2xl leading-none font-medium tracking-[-0.01em]">Dossier</span>
-            <span className="truncate text-xs text-muted">Your job search, on your server</span>
+            <span className="text-xl leading-none font-extrabold tracking-[-0.03em]">JobPilot</span>
+            <span className="truncate text-xs text-muted">Your job search, all in one place</span>
           </div>
         </>
       }
     >
-      <div className="flex flex-1 flex-col gap-1 p-2 group-data-collapsed/sidebar:px-1">
+      <div className="flex flex-1 flex-col gap-1 p-3 group-data-collapsed/sidebar:px-3">
         {/* Always a fresh start, whatever an open draft holds (E7-7). */}
         <Link
           href="/new?fresh=1"
           title="New application"
-          className="mb-2 flex min-h-[34px] items-center gap-1.5 rounded-control bg-primary px-3 text-sm font-semibold text-on-primary shadow-cta hover:bg-primary-hover hover:text-on-primary motion-safe:transition-colors group-data-collapsed/sidebar:justify-center group-data-collapsed/sidebar:px-1.5"
+          className="mb-3 flex min-h-11 items-center gap-1.5 rounded-control bg-accent px-3 text-sm font-bold text-on-accent hover:bg-primary-hover hover:text-on-primary motion-safe:transition-colors group-data-collapsed/sidebar:justify-center group-data-collapsed/sidebar:px-1.5"
         >
           <Plus size={16} aria-hidden="true" className="shrink-0" />
           {/* Hidden while collapsed, but still the link's name. */}

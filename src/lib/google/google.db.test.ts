@@ -131,7 +131,7 @@ describe("the inbox check (E15-3)", () => {
       { id: "m4", threadId: "t4", from: "Deals <deals@shop.example>", subject: "Sale", text: "50% off", labels: ["INBOX", "CATEGORY_PROMOTIONS"] },
     ];
     const result = await syncInbox();
-    expect(result).toEqual({ fetched: 4, kept: 2, read: 2 });
+    expect(result).toEqual({ fetched: 4, kept: 2, read: 2, logged: 0 });
 
     const kept = await prisma().emailMessage.findMany({ where: { direction: "INCOMING" }, orderBy: { gmailId: "asc" } });
     expect(kept.map((email) => [email.gmailId, email.applicationId, email.kind, email.suggestedStatus])).toEqual([
@@ -145,7 +145,7 @@ describe("the inbox check (E15-3)", () => {
 
     // The next check carries on from the history: only what's new since.
     mailbox.push({ id: "m6", threadId: "thread-new", from: "Anna Keller <a.keller@northwind.example>", subject: "Re: Application", text: "Wednesday 14:00 works.", history: 250 });
-    expect(await syncInbox()).toEqual({ fetched: 1, kept: 1, read: 1 });
+    expect(await syncInbox()).toEqual({ fetched: 1, kept: 1, read: 1, logged: 0 });
     expect((await prisma().googleAccount.findUniqueOrThrow({ where: { id: "google" } })).historyId).toBe("300");
   });
 
@@ -156,7 +156,7 @@ describe("the inbox check (E15-3)", () => {
       { id: "spam", threadId: "t8", from: "Spam <win@prize.example>", subject: "You won", text: "Click", labels: ["SPAM"], history: 250, deleted: true },
       { id: "m7", threadId: "thread-new", from: "Anna Keller <a.keller@northwind.example>", subject: "Re: Application", text: "Thursday?", history: 250 },
     ];
-    expect(await syncInbox()).toEqual({ fetched: 2, kept: 1, read: 1 });
+    expect(await syncInbox()).toEqual({ fetched: 2, kept: 1, read: 1, logged: 0 });
     expect(await prisma().googleAccount.findUniqueOrThrow({ where: { id: "google" } })).toMatchObject({ historyId: "300", syncProblem: null });
   });
 

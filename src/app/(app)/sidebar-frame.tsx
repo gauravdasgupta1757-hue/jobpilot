@@ -47,14 +47,15 @@ export function SidebarFrame({
       <aside
         data-collapsed={collapsed || undefined}
         className={cn(
-          "group/sidebar sticky top-0 flex h-screen shrink-0 flex-col self-start overflow-x-hidden overflow-y-auto border-r border-line bg-sidebar motion-safe:transition-[width] motion-safe:duration-200",
-          collapsed ? "w-12" : "w-[260px]",
+          // JobPilot: a dark rail in either scheme (on-dark, globals.css).
+          "group/sidebar on-dark sticky top-0 flex h-screen shrink-0 flex-col self-start overflow-x-hidden overflow-y-auto bg-sidebar motion-safe:transition-[width] motion-safe:duration-200",
+          collapsed ? "w-[76px]" : "w-[248px]",
         )}
       >
         <div
           className={cn(
-            "group/header relative flex items-center gap-2 border-b border-line",
-            collapsed ? "justify-center px-1 py-3" : "pt-3 pr-3 pb-4 pl-4",
+            "group/header relative flex items-center gap-2",
+            collapsed ? "justify-center px-1 pt-5 pb-6" : "pt-5 pr-3 pb-6 pl-5",
           )}
         >
           <div
@@ -75,7 +76,7 @@ export function SidebarFrame({
             className={cn(
               "grid size-7 shrink-0 place-items-center rounded-control text-muted hover:bg-hover hover:text-ink",
               collapsed &&
-                "absolute inset-0 m-auto size-8 bg-surface opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 motion-safe:transition-opacity",
+                "absolute inset-0 m-auto size-11 rounded-control bg-surface opacity-0 group-hover/header:opacity-100 focus-visible:opacity-100 motion-safe:transition-opacity",
             )}
           >
             <Icon size={16} aria-hidden="true" />

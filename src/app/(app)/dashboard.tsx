@@ -108,10 +108,10 @@ function Funnel({ figures }: { figures: DashboardFigures }) {
           </h2>
           <p className="text-control text-muted">How far each application you&apos;ve sent has made it, and where the ones that stopped are now.</p>
         </div>
-        <dl className="flex gap-7">
-          <Figure value={String(sent)} label="sent" />
-          <Figure value={heardBackPercent === null ? "None yet" : `${heardBackPercent}%`} label="heard back" />
-          <Figure value={String(reachedInterview)} label="reached interview" />
+        <dl className="flex flex-wrap gap-3">
+          <Figure value={String(sent)} label="sent" tile="bg-tile-blue" />
+          <Figure value={heardBackPercent === null ? "None yet" : `${heardBackPercent}%`} label="heard back" tile="bg-tile-lavender" />
+          <Figure value={String(reachedInterview)} label="reached interview" tile="bg-tile-mint" />
         </dl>
       </div>
       <FunnelChart funnel={funnel} />
@@ -119,11 +119,12 @@ function Funnel({ figures }: { figures: DashboardFigures }) {
   );
 }
 
-function Figure({ value, label }: { value: string; label: string }) {
+/** A headline number on a pastel tile (JobPilot). */
+function Figure({ value, label, tile }: { value: string; label: string; tile: string }) {
   return (
-    <div className="flex flex-col-reverse gap-0.5">
-      <dt className="text-label text-muted">{label}</dt>
-      <dd className="font-serif text-[32px] leading-none tabular-nums">{value}</dd>
+    <div className={`flex min-w-[124px] flex-col-reverse gap-1 rounded-card px-4 py-3 ${tile}`}>
+      <dt className="text-label font-medium text-ink/70">{label}</dt>
+      <dd className="text-[28px] leading-none font-extrabold tracking-[-0.02em] tabular-nums">{value}</dd>
     </div>
   );
 }

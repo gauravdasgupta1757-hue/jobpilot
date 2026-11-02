@@ -129,8 +129,17 @@ export type KeywordMatch = {
 
 const NO_MATCH: KeywordMatch = { matched: false, hits: [], viaRelated: false, relevance: 0 };
 
-/** Checks one posting against the query. An empty query matches everything. */
-export function matchPosting(query: KeywordQuery, posting: PostingText, { related = true }: { related?: boolean } = {}): KeywordMatch {
+/**
+ * Checks one posting against the query. An empty query matches everything.
+ * With `requireAny` off, the "any" terms only rank, they don't filter: for
+ * postings a source already returned for those words, which it may match by
+ * meaning ("UX Researcher" for "product designer"). Then only + and - filter.
+ */
+export function matchPosting(
+  query: KeywordQuery,
+  posting: PostingText,
+  { related = true, requireAny = true }: { related?: boolean; requireAny?: boolean } = {},
+): KeywordMatch {
   const title = normalize(posting.title);
   const body = normalize([posting.company, posting.place, posting.description].filter(Boolean).join(" \n "));
   const anywhere = `${title} \n ${body}`;
@@ -161,10 +170,10 @@ export function matchPosting(query: KeywordQuery, posting: PostingText, { relate
       relevance += containsTerm(title, variant) ? 3 : 1;
     }
   }
-  if (!anyFound) return NO_MATCH;
+  if (!anyFound && requireAny) return NO_MATCH;
 
   const typed = query.any.length + query.all.length > 0;
-  return { matched: true, hits, viaRelated: typed && !literal, relevance };
+  return { matched: true, hits, viaRelated: typed && hits.length > 0 && !literal, relevance };
 }
 
 /**

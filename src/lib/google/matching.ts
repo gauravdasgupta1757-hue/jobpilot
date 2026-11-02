@@ -49,7 +49,8 @@ export function companyDomains(application: Pick<MatchableApplication, "postingT
 export function companyKey(company: string): string {
   return company
     .toLowerCase()
-    .replace(/\b(gmbh|ag|se|inc|ltd|llc|bv|b\.v\.|plc|co|corp|corporation|limited|group|the)\b\.?/g, "")
+    // JobPilot: Indian forms too ("Pvt. Ltd.", "Private Limited", "LLP").
+    .replace(/\b(gmbh|ag|se|inc|ltd|llc|llp|pvt|private|bv|b\.v\.|plc|co|corp|corporation|limited|group|the)\b\.?/g, "")
     .replace(/[^\p{L}\p{N}]+/gu, "")
     .trim();
 }
