@@ -57,6 +57,10 @@ RUN mkdir /tools && node -e ' \
 RUN node_modules/.bin/esbuild prisma/seed.ts --bundle --platform=node --format=esm --target=node24 \
   --external:pg-native --outfile=/tools/seed.mjs \
   --banner:js='import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'
+# JobPilot: makes each person's database on a shared server (docker/start.sh).
+RUN node_modules/.bin/esbuild scripts/ensure-database.ts --bundle --platform=node --format=esm --target=node24 \
+  --external:pg-native --outfile=/tools/ensure-database.mjs \
+  --banner:js='import { createRequire } from "node:module"; const require = createRequire(import.meta.url);'
 # `hash-password`, which makes the hash for DOSSIER_PASSWORD, as one file too.
 RUN node_modules/.bin/esbuild scripts/hash-password.ts --bundle --platform=node --format=esm --target=node24 \
   --outfile=/tools/hash-password.mjs --banner:js='#!/usr/bin/env node' \

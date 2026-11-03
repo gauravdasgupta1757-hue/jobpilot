@@ -7,7 +7,7 @@
 import { PrismaPg } from "@prisma/adapter-pg";
 
 import { PrismaClient } from "@/generated/prisma/client";
-import { pgConfig } from "@/lib/pg-config";
+import { pgSetup } from "@/lib/pg-config";
 
 import { seedBuiltIns } from "./seed/built-ins";
 import { DemoRefused, seedDemo } from "./seed/demo";
@@ -21,7 +21,8 @@ async function main() {
   }
   if (flags.has("--reset") && !flags.has("--demo")) throw new Error("--reset only works together with --demo.");
 
-  const db = new PrismaClient({ adapter: new PrismaPg(pgConfig(process.env.DATABASE_URL)) });
+  const { pool, schema } = pgSetup(process.env.DATABASE_URL);
+  const db = new PrismaClient({ adapter: new PrismaPg(pool, { schema }) });
   try {
     await seedBuiltIns(db);
     console.log("Seeded the built-in themes.");

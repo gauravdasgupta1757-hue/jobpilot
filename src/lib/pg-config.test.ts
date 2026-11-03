@@ -1,16 +1,20 @@
 import { describe, expect, it } from "vitest";
 
-import { pgConfig } from "./pg-config";
+import { pgSetup } from "./pg-config";
 
-describe("pgConfig", () => {
-  it("leaves the connection string alone without a CA", () => {
-    expect(pgConfig("postgresql://u:p@h:5432/db?sslmode=require", "")).toEqual({ connectionString: "postgresql://u:p@h:5432/db?sslmode=require" });
+describe("pgSetup", () => {
+  it("leaves the connection string alone without a CA or a schema", () => {
+    expect(pgSetup("postgresql://u:p@h:5432/db?sslmode=require", "")).toEqual({ pool: { connectionString: "postgresql://u:p@h:5432/db?sslmode=require" }, schema: undefined });
   });
 
   it("checks the server against the CA, with sslmode moved out of the string", () => {
-    expect(pgConfig("postgresql://u:p@h:25060/db?sslmode=require&application_name=jp", "-----BEGIN CERTIFICATE-----")).toEqual({
-      connectionString: "postgresql://u:p@h:25060/db?application_name=jp",
-      ssl: { ca: "-----BEGIN CERTIFICATE-----", rejectUnauthorized: true },
+    expect(pgSetup("postgresql://u:p@h:25060/db?sslmode=require&application_name=jp", "-----BEGIN CERTIFICATE-----")).toEqual({
+      pool: { connectionString: "postgresql://u:p@h:25060/db?application_name=jp", ssl: { ca: "-----BEGIN CERTIFICATE-----", rejectUnauthorized: true } },
+      schema: undefined,
     });
+  });
+
+  it("gives the schema to the adapter, not to Postgres", () => {
+    expect(pgSetup("postgresql://u:p@h/db?schema=gd", "")).toEqual({ pool: { connectionString: "postgresql://u:p@h/db" }, schema: "gd" });
   });
 });

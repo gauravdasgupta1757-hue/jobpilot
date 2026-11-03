@@ -1,11 +1,14 @@
-# One person's JobPilot on Render: the app and its database, in Singapore
-# (closest to India). New → Blueprint → this repository. Render asks for
-# DOSSIER_PASSWORD (the argon2id hash, see RENDER.md); the rest fills itself.
+# JobPilot on Render, in Singapore (closest to India): four logins, each its
+# own app with its own password and its own database on one shared Postgres
+# server (DATABASE_NAME; the first uses the server's own database).
+# New → Blueprint → this repository. Render asks for each DOSSIER_PASSWORD
+# (the argon2id hash, see RENDER.md); the rest fills itself.
 # Free plans, for trying it out. A free service sleeps after 15 minutes
 # without visits (the inbox check and the job agent pause until the next
 # visit wakes it, about a minute), and a free database is deleted after 30
 # days. To keep it: in the dashboard, move the service to Starter and the
-# database to Basic-256mb; nothing else changes.
+# database to Basic-256mb; nothing else changes. Free services share 750
+# running hours a month; sleeping ones use none.
 
 services:
   - type: web
@@ -27,6 +30,83 @@ services:
         sync: false
       - key: DOSSIER_SECRET
         generateValue: true
+      - key: DOSSIER_JOBS_SOURCE
+        value: freehire
+      - key: TZ
+        value: Asia/Kolkata
+  - type: web
+    name: jobpilot-2
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    # One copy only: the inbox check, the agent and the backups run inside the app.
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jobpilot-db
+          property: connectionString
+      - key: DATABASE_NAME
+        value: jp2
+      - key: DOSSIER_PASSWORD
+        sync: false
+      - key: DOSSIER_SECRET
+        generateValue: true
+      - key: DOSSIER_JOBS_SOURCE
+        value: freehire
+      - key: TZ
+        value: Asia/Kolkata
+  - type: web
+    name: jobpilot-3
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    # One copy only: the inbox check, the agent and the backups run inside the app.
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jobpilot-db
+          property: connectionString
+      - key: DATABASE_NAME
+        value: jp3
+      - key: DOSSIER_PASSWORD
+        sync: false
+      - key: DOSSIER_SECRET
+        generateValue: true
+      - key: DOSSIER_JOBS_SOURCE
+        value: freehire
+      - key: TZ
+        value: Asia/Kolkata
+  - type: web
+    name: jobpilot-4
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    region: singapore
+    plan: free
+    # One copy only: the inbox check, the agent and the backups run inside the app.
+    numInstances: 1
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: jobpilot-db
+          property: connectionString
+      - key: DATABASE_NAME
+        value: jp4
+      - key: DOSSIER_PASSWORD
+        sync: false
+      - key: DOSSIER_SECRET
+        generateValue: true
+      - key: DOSSIER_JOBS_SOURCE
+        value: freehire
       - key: TZ
         value: Asia/Kolkata
 

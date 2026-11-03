@@ -49,14 +49,21 @@ vi.mock("@/lib/job-search", () => ({
     return { postings: fake.postings, next: "page-2" };
   }),
 }));
-vi.mock("@/lib/job-search/config", () => ({
+// JobPilot: a run asks every source that's set up; here only JSearch has a key.
+vi.mock("@/lib/job-search/config", async () => ({
   loadJobSearchConfig: async () => ({
     source: fake.source,
     saved: true,
     jsearch: { key: "jsearch-key", host: "openwebninja", keyState: "set" },
     adzuna: { appId: "app", key: "adzuna-key", keyState: "set" },
   }),
-  credentialsFor: () => ({ key: "jsearch-key", host: "openwebninja" }),
+  credentialsFor: await (async () => {
+    const { JobSearchError } = await import("@/lib/job-search/errors");
+    return (_config: unknown, source: string) => {
+      if (source !== "JSEARCH") throw new JobSearchError("no-key", `No ${source} key.`);
+      return { key: "jsearch-key", host: "openwebninja" };
+    };
+  })(),
   requestContext: () => ({}),
 }));
 vi.mock("@/lib/ai/config", () => ({ isAiConfigured: async () => fake.ai }));
@@ -116,7 +123,8 @@ describe("runAgentScan (E16-3)", () => {
   it("searches once, scores the new postings and keeps them, below the minimum too", async () => {
     const run = context();
     const result = await runAgentScan({ manual: false }, run, now);
-    expect(fake.searches).toBe(1);
+    // One request per search line: the typed words, then a related title.
+    expect(fake.searches).toBe(2);
     expect(run.steps).toEqual(["Searching for new postings", "Scoring 3 postings"]);
     expect(result).toEqual({ found: 3, fresh: 3, scored: 3, drafted: 0, skipped: 0, message: "2 new postings are waiting for a look." });
     const candidates = await prisma().agentCandidate.findMany({ orderBy: { score: "desc" } });
@@ -228,14 +236,14 @@ describe("runAgentScan (E16-3)", () => {
       await runAgentScan({ manual: true }, context(), at);
       await sweepFinishedJobs(new Date(now.getTime() + (hours + 1.5) * hour));
     }
-    expect(fake.searches).toBe(3);
+    expect(fake.searches).toBe(6);
     expect(await prisma().job.count()).toBe(0);
     const fourth = await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 6 * hour));
     expect(fourth.message).toBe("The agent has run 3 times in the past 24 hours, as many as it may. Try again in 18 hours.");
-    expect(fake.searches).toBe(3);
+    expect(fake.searches).toBe(6);
     // A day after the first, one may go again.
     await runAgentScan({ manual: true }, context(), new Date(now.getTime() + 24 * hour + 1));
-    expect(fake.searches).toBe(4);
+    expect(fake.searches).toBe(8);
   });
 
   it("records the run before it asks the source, so a failing source still counts", async () => {

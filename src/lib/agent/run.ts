@@ -5,8 +5,8 @@ import { z } from "zod";
 import { Prisma } from "@/generated/prisma/client";
 import { AgentCandidateStatus } from "@/generated/prisma/enums";
 import { AiError } from "@/lib/ai/errors";
-import { searchPostings } from "@/lib/job-search";
-import { credentialsFor, loadJobSearchConfig, requestContext } from "@/lib/job-search/config";
+import { credentialsFor, loadJobSearchConfig } from "@/lib/job-search/config";
+import { askSource } from "@/lib/job-search/find";
 import { JobSearchError } from "@/lib/job-search/errors";
 import { postingKey, type FoundPosting, type SearchQuery } from "@/lib/job-search/search";
 import { startJob, type JobContext } from "@/lib/jobs/runner";
@@ -111,16 +111,11 @@ export async function runAgentScan({ manual }: { manual: boolean }, context: Job
   };
 
   await context.step("Searching for new postings");
-  const config = await loadJobSearchConfig();
-  const source = config.source!;
-  let postings: FoundPosting[];
-  try {
-    // The first page only: the agent never asks for a second.
-    postings = (await searchPostings(source, credentialsFor(config, source), settings.agentQuery, null, requestContext(source))).postings;
-  } catch (error) {
-    if (error instanceof JobSearchError) return finish(stopped(error.message));
-    throw error;
-  }
+  // JobPilot: every source that's set up, for each keyword and related title,
+  // merged and ranked as Find jobs does. The first page of each only.
+  const asked = await askSource(settings.agentQuery);
+  if (!asked.ok) return finish(stopped(asked.message));
+  const postings: FoundPosting[] = asked.postings;
 
   const fresh = await newPostings(postings);
   const counts = { found: postings.length, fresh: fresh.length, skipped: postings.length - fresh.length, drafted: 0 };
